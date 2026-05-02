@@ -75,6 +75,7 @@ services:
     container_name: deals-app
     restart: unless-stopped
     env_file: .env
+    dockerfile: Dockerfile
     networks:
       - deals-net
     depends_on:
