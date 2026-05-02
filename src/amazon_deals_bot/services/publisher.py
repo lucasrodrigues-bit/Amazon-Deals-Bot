@@ -1,87 +1,59 @@
+import asyncio
+import random
+
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from datetime import datetime
 
-from amazon_deals_bot.models.deal import Deal
+from amazon_deals_bot.repositories.deal_repository import DealRepository
 
 
-class DealRepository:
+class PublisherService:
     def __init__(self, session: AsyncSession):
         self.session = session
+        self.repo = DealRepository(session)
 
-    async def get_by_id(self, deal_id: str) -> Deal | None:
-        result = await self.session.execute(
-            select(Deal).where(Deal.id == deal_id)
-        )
-        return result.scalar_one_or_none()
+    async def send_to_telegram(self, message: str):
+        # TODO: integrar API real depois
+        print("📢 TELEGRAM:")
+        print(message)
 
-    async def exists(self, deal_id: str) -> bool:
-        result = await self.session.execute(
-            select(Deal.id).where(Deal.id == deal_id)
-        )
-        return result.scalar_one_or_none() is not None
+    async def send_to_whatsapp(self, message: str):
+        # TODO: integrar Evolution API depois
+        print("📱 WHATSAPP:")
+        print(message)
 
-    async def create(self, deal: Deal) -> Deal:
-        self.session.add(deal)
-        await self.session.commit()
-        await self.session.refresh(deal)
-        return deal
+    async def process(self):
+        deals = await self.repo.get_ready_deals(limit=5)
 
-    # 🔥 Deals recém coletados (ainda sem copy)
-    async def get_pending_deals(self, limit: int = 10):
-        result = await self.session.execute(
-            select(Deal)
-            .where(Deal.status == "PENDING")
-            .limit(limit)
-        )
-        return result.scalars().all()
+        for deal in deals:
+            try:
+                if not deal.copy:
+                    continue
 
-    # 🔥 Deals prontos para envio
-    async def get_ready_deals(self, limit: int = 10):
-        result = await self.session.execute(
-            select(Deal)
-            .where(Deal.status == "READY")
-            .limit(limit)
-        )
-        return result.scalars().all()
+                message = deal.copy
 
-    async def update_status(
-        self,
-        deal_id: str,
-        status: str,
-        retry_count: int | None = None,
-    ):
-        deal = await self.get_by_id(deal_id)
+                # envio
+                await self.send_to_telegram(message)
+                await self.send_to_whatsapp(message)
 
-        if not deal:
-            return None
+                # status
+                await self.repo.update_status(deal.id, "SENT")
 
-        deal.status = status
-        deal.updated_at = datetime.utcnow()
+                # 🔥 anti-ban (CRÍTICO)
+                await asyncio.sleep(random.randint(45, 90))
 
-        if status == "SENT":
-            deal.sent_at = datetime.utcnow()
+            except Exception:
+                new_retry = (deal.retry_count or 0) + 1
 
-        if retry_count is not None:
-            deal.retry_count = retry_count
-
-        await self.session.commit()
-        await self.session.refresh(deal)
-
-        return deal
-
-    # 🔥 Atualiza copy + status (usado pelo copywriter)
-    async def update_copy(self, deal_id: str, copy: str):
-        deal = await self.get_by_id(deal_id)
-
-        if not deal:
-            return None
-
-        deal.copy = copy
-        deal.status = "READY"
-        deal.updated_at = datetime.utcnow()
-
-        await self.session.commit()
-        await self.session.refresh(deal)
-
-        return deal
+                # 🔥 controle de retry
+                if new_retry >= 3:
+                    await self.repo.update_status(
+                        deal.id,
+                        "FAILED",
+                        retry_count=new_retry,
+                    )
+                else:
+                    await self.repo.update_status(
+                        deal.id,
+                        "READY",  # volta pra fila
+                        retry_count=new_retry,
+                    )

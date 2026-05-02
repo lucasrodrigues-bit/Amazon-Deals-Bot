@@ -1,5 +1,4 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 
 from amazon_deals_bot.models.deal import Deal
 from amazon_deals_bot.repositories.deal_repository import DealRepository
@@ -10,15 +9,9 @@ class CopywriterService:
         self.session = session
         self.repo = DealRepository(session)
 
-    async def get_pending_deals(self, limit: int = 10):
-        result = await self.session.execute(
-            select(Deal).where(Deal.status == "PENDING").limit(limit)
-        )
-        return result.scalars().all()
-
     async def generate_copy(self, deal: Deal) -> str:
         """
-        Placeholder de IA (vamos integrar OpenAI depois)
+        Placeholder (depois entra OpenAI)
         """
         return f"""🔥 OFERTA IMPERDÍVEL!
 
@@ -33,17 +26,28 @@ class CopywriterService:
 """
 
     async def process(self):
-        deals = await self.get_pending_deals()
+        # 🔥 agora via repository
+        deals = await self.repo.get_pending_deals(limit=10)
 
         for deal in deals:
             try:
                 copy = await self.generate_copy(deal)
 
-                deal.copy = copy
-                deal.status = "READY"
-
-                await self.session.commit()
+                # 🔥 atualização centralizada
+                await self.repo.update_copy(deal.id, copy)
 
             except Exception:
-                deal.status = "FAILED"
-                await self.session.commit()
+                new_retry = (deal.retry_count or 0) + 1
+
+                if new_retry >= 3:
+                    await self.repo.update_status(
+                        deal.id,
+                        "FAILED",
+                        retry_count=new_retry,
+                    )
+                else:
+                    await self.repo.update_status(
+                        deal.id,
+                        "PENDING",
+                        retry_count=new_retry,
+                    )
