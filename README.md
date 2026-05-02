@@ -76,18 +76,29 @@ O projeto segue uma arquitetura modular baseada em separação de responsabilida
 
 ```
 amazon-deals-bot/
-├── controller/              # Endpoints (se necessário)
-├── service/
-│   ├── scheduler/           # Execução automática
-│   ├── api/                 # Clients das APIs externas
-│   ├── affiliate/           # Geração de links afiliados
-│   ├── product/             # Regras de negócio de produto
-│   ├── ai/                  # Geração de copy
-│   └── messaging/           # Envio WhatsApp
-├── repository/              # Acesso ao banco (JPA)
-├── entity/                  # Entidades (Product, Deal, etc.)
-├── dto/                     # Objetos de transferência
-├── config/                  # Configurações (beans, clients)
+├── config/                          ← YAMLs do operador (categorias, grupos)
+├── prompts/                         ← Templates de prompt da IA
+├── src/
+│   └── amazon_deals_bot/
+│       ├── clients/                 ← Um arquivo por API externa (I/O puro)
+│       ├── config/                  ← settings.py + loader.py
+│       ├── db/                      ← session.py + redis.py
+│       ├── models/                  ← deal.py + base.py (ORM)
+│       ├── repositories/            ← deal_repository.py
+│       ├── scheduler/               ← setup.py + jobs.py
+│       ├── services/                ← collector, publisher, affiliate, dedup, copywriter
+│       ├── utils/                   ← constants, logger, retry
+│       └── main.py
+├── migrations/
+│   └── versions/
+├── tests/
+│   ├── unit/                        ← services/ · clients/ · utils/
+│   └── integration/
+├── .env.example
+├── alembic.ini
+├── docker-compose.yml
+├── Makefile
+└── pyproject.toml
 ```
 
 ---
@@ -151,16 +162,16 @@ DB_NAME=deals_db
 DB_USER=root
 DB_PASSWORD=root
 
-## API_AMAZON_KEY=
-## API_SHOPEE_KEY=
-## API_MAGALU_KEY=
+## API_AMAZON_KEY=***
+## API_SHOPEE_KEY=***
+## API_MAGALU_KEY=***
 
-## AFFILIATE_ID=
+## AFFILIATE_ID=***
 
-## OPENAI_API_KEY=
+## OPENAI_API_KEY=***
 
-## WHATSAPP_API_URL=
-## WHATSAPP_API_TOKEN=
+## WHATSAPP_API_URL=***
+## WHATSAPP_API_TOKEN=***
 ```
 
 ---
