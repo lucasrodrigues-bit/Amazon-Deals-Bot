@@ -51,3 +51,6 @@ class Deal(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
     sent_at = Column(DateTime, nullable=True)
+
+    #copy
+    copy = Column(Text, nullable=True)
