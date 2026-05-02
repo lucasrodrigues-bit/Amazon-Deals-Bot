@@ -1,101 +1,54 @@
+version: "3.9"
+
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: deals-app
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    depends_on:
+      - postgres
+      - redis
+
+    networks:
+      - deals-net
+
   postgres:
     image: postgres:15
     container_name: deals-postgres
-    restart: unless-stopped
+
     environment:
+      POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+
+    ports:
+      - "5432:5432"
+
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+
     networks:
       - deals-net
-    ports:
-      - "5432:5432" # dev only — comment out in prod
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
 
   redis:
     image: redis:7
     container_name: deals-redis
-    restart: unless-stopped
-    volumes:
-      - redis-data:/data
+
+    ports:
+      - "6379:6379"
+
     networks:
       - deals-net
-    ports:
-      - "6379:6379" # dev only — comment out in prod
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-
-  evolution-api:
-    image: atendai/evolution-api:latest
-    container_name: deals-evolution-api
-    restart: unless-stopped
-    environment:
-      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
-      DATABASE_ENABLED: "false"
-      REDIS_ENABLED: "true"
-      REDIS_URI: redis://redis:6379
-    volumes:
-      - evolution-sessions:/evolution/instances
-    networks:
-      - deals-net
-    ports:
-      - "8080:8080"
-    depends_on:
-      redis:
-        condition: service_healthy
-
-  dozzle:
-    image: amir20/dozzle:latest
-    container_name: deals-dozzle
-    restart: unless-stopped
-    environment:
-      DOZZLE_USERNAME: ${DOZZLE_USERNAME}
-      DOZZLE_PASSWORD: ${DOZZLE_PASSWORD}
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks:
-      - deals-net
-    ports:
-      - "9999:8080"
-
-  app:
-  build:
-    context: .
-    dockerfile: Dockerfile
-
-  container_name: deals-app
-  restart: unless-stopped
-  env_file:
-    - .env
-
-  networks:
-    - deals-net
-
-  depends_on:
-    postgres:
-      condition: service_healthy
-    redis:
-      condition: service_healthy
-    evolution-api:
-      condition: service_started
-
-volumes:
-  postgres-data:
-  redis-data:
-  evolution-sessions:
 
 networks:
   deals-net:
-    driver: bridge
+
+volumes:
+  postgres_data:
