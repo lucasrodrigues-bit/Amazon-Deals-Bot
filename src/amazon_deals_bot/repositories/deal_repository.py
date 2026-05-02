@@ -27,10 +27,20 @@ class DealRepository:
         await self.session.refresh(deal)
         return deal
 
+    # 🔥 Deals recém coletados (ainda sem copy)
     async def get_pending_deals(self, limit: int = 10):
         result = await self.session.execute(
             select(Deal)
             .where(Deal.status == "PENDING")
+            .limit(limit)
+        )
+        return result.scalars().all()
+
+    # 🔥 Deals prontos para envio
+    async def get_ready_deals(self, limit: int = 10):
+        result = await self.session.execute(
+            select(Deal)
+            .where(Deal.status == "READY")
             .limit(limit)
         )
         return result.scalars().all()
@@ -54,6 +64,22 @@ class DealRepository:
 
         if retry_count is not None:
             deal.retry_count = retry_count
+
+        await self.session.commit()
+        await self.session.refresh(deal)
+
+        return deal
+
+    # 🔥 Atualiza copy + status (usado pelo copywriter)
+    async def update_copy(self, deal_id: str, copy: str):
+        deal = await self.get_by_id(deal_id)
+
+        if not deal:
+            return None
+
+        deal.copy = copy
+        deal.status = "READY"
+        deal.updated_at = datetime.utcnow()
 
         await self.session.commit()
         await self.session.refresh(deal)

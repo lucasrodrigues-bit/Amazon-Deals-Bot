@@ -1,62 +1,87 @@
-import asyncio
-import random
-
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from datetime import datetime
 
 from amazon_deals_bot.models.deal import Deal
-from amazon_deals_bot.repositories.deal_repository import DealRepository
 
 
-class PublisherService:
+class DealRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
-        self.repo = DealRepository(session)
 
-    async def get_ready_deals(self, limit: int = 5):
+    async def get_by_id(self, deal_id: str) -> Deal | None:
         result = await self.session.execute(
-            select(Deal).where(Deal.status == "READY").limit(limit)
+            select(Deal).where(Deal.id == deal_id)
+        )
+        return result.scalar_one_or_none()
+
+    async def exists(self, deal_id: str) -> bool:
+        result = await self.session.execute(
+            select(Deal.id).where(Deal.id == deal_id)
+        )
+        return result.scalar_one_or_none() is not None
+
+    async def create(self, deal: Deal) -> Deal:
+        self.session.add(deal)
+        await self.session.commit()
+        await self.session.refresh(deal)
+        return deal
+
+    # 🔥 Deals recém coletados (ainda sem copy)
+    async def get_pending_deals(self, limit: int = 10):
+        result = await self.session.execute(
+            select(Deal)
+            .where(Deal.status == "PENDING")
+            .limit(limit)
         )
         return result.scalars().all()
 
-    async def send_to_telegram(self, message: str):
-        """
-        Placeholder (vamos integrar depois)
-        """
-        print("📢 TELEGRAM:")
-        print(message)
+    # 🔥 Deals prontos para envio
+    async def get_ready_deals(self, limit: int = 10):
+        result = await self.session.execute(
+            select(Deal)
+            .where(Deal.status == "READY")
+            .limit(limit)
+        )
+        return result.scalars().all()
 
-    async def send_to_whatsapp(self, message: str):
-        """
-        Placeholder (Evolution API depois)
-        """
-        print("📱 WHATSAPP:")
-        print(message)
+    async def update_status(
+        self,
+        deal_id: str,
+        status: str,
+        retry_count: int | None = None,
+    ):
+        deal = await self.get_by_id(deal_id)
 
-    async def process(self):
-        deals = await self.get_ready_deals()
+        if not deal:
+            return None
 
-        for deal in deals:
-            try:
-                message = deal.copy
+        deal.status = status
+        deal.updated_at = datetime.utcnow()
 
-                if not message:
-                    continue
+        if status == "SENT":
+            deal.sent_at = datetime.utcnow()
 
-                # envio
-                await self.send_to_telegram(message)
-                await self.send_to_whatsapp(message)
+        if retry_count is not None:
+            deal.retry_count = retry_count
 
-                # status
-                deal.status = "SENT"
+        await self.session.commit()
+        await self.session.refresh(deal)
 
-                await self.session.commit()
+        return deal
 
-                # anti-spam (CRÍTICO)
-                await asyncio.sleep(random.randint(45, 90))
+    # 🔥 Atualiza copy + status (usado pelo copywriter)
+    async def update_copy(self, deal_id: str, copy: str):
+        deal = await self.get_by_id(deal_id)
 
-            except Exception:
-                deal.status = "FAILED"
-                deal.retry_count += 1
+        if not deal:
+            return None
 
-                await self.session.commit()
+        deal.copy = copy
+        deal.status = "READY"
+        deal.updated_at = datetime.utcnow()
+
+        await self.session.commit()
+        await self.session.refresh(deal)
+
+        return deal
