@@ -1,305 +1,237 @@
 # 🤖 Amazon Deals Bot
 
-Bot Python que monitora promoções de grandes marketplaces brasileiros, filtra as melhores ofertas e envia mensagens geradas por IA automaticamente para um grupo no WhatsApp.
+Sistema automatizado para coleta, processamento e distribuição de promoções de marketplaces, com monetização via links de afiliado e envio inteligente para grupos de WhatsApp.
 
 ---
 
-## Como funciona
+## 📌 Visão Geral
 
-A cada 30 minutos o bot executa o seguinte ciclo:
+O **Amazon Deals Bot** é um sistema backend desenvolvido em **Java + Spring Boot** que:
 
-1. **Busca** promoções via RSS de um agregador público
-2. **Filtra** por categorias configuradas e desconto mínimo
-3. **Deduplica** — nunca envia a mesma promoção duas vezes
-4. **Gera** uma mensagem de venda em português com IA
-5. **Envia** para o grupo WhatsApp configurado
-6. **Registra** o envio no banco de dados
+- Consome promoções diretamente de APIs de marketplaces
+- Gera links de afiliado automaticamente
+- Evita duplicidade de envios
+- Cria mensagens persuasivas com IA
+- Envia ofertas automaticamente para grupos de WhatsApp
+- Armazena e rastreia todas as promoções no banco
+
+---
+
+## ⚙️ Como funciona
+
+## A aplicação executa um ciclo automatizado:
 
 ```
-Scheduler (30 min)
-     │
-     ▼
-Busca RSS ──► Filtra categorias ──► Desconto ≥ 20%?
-                                          │
-                                    NÃO ──► Descarta
-                                          │
-                                    SIM ──► Já enviado?
-                                                │
-                                          SIM ──► Pula
-                                                │
-                                          NÃO ──► Gera mensagem (IA)
-                                                       │
-                                                       ▼
-                                                Envia WhatsApp
-                                                       │
-                                                       ▼
-                                                Salva no banco
+Scheduler
+│
+▼
+Consumo de APIs (Amazon, Shopee, Magalu)
+│
+▼
+Normalização dos dados
+│
+▼
+Geração de link de afiliado
+│
+▼
+Validação (duplicidade / preço / status)
+│
+├── Já existe → DESCARTA
+│
+▼
+Persistência no banco (MySQL)
+│
+▼
+Geração de copy com IA
+│
+▼
+Montagem da mensagem
+│
+▼
+Envio via WhatsApp (Evolution API)
+│
+▼
+Atualização de status (ENVIADO)
 ```
 
 ---
 
-## Categorias monitoradas
+## 🏗️ Stack Tecnológica
 
-- 🏠 Casa e Eletrodomésticos
-- 👗 Moda e Vestuário
-- 📚 Livros
-- 🏋️ Esportes e Fitness
-
----
-
-## Stack
-
-| Camada | Tecnologia |
-|---|---|
-| Linguagem | Python 3.12 |
-| Scheduler | APScheduler |
-| Banco de dados | PostgreSQL (Supabase) |
-| IA | GPT-4o mini |
-| Mensageria | WhatsApp via API |
-| Hospedagem | Railway |
-| CI/CD | GitHub Actions |
+| Camada          | Tecnologia                                  |
+| --------------- | ------------------------------------------- |
+| Backend         | Java 17 + Spring Boot                       |
+| Scheduler       | Spring Scheduler (`@Scheduled`)             |
+| Banco de Dados  | MySQL                                       |
+| Containerização | Docker                                      |
+| Infraestrutura  | VPS                                         |
+| IA              | API de geração de texto (OpenAI ou similar) |
+| Mensageria      | Evolution API (WhatsApp)                    |
 
 ---
 
-## Arquitetura
+## 🧩 Arquitetura
 
-O projeto segue **Clean Architecture** com separação clara entre camadas:
+O projeto segue uma arquitetura modular baseada em separação de responsabilidades:
 
 ```
 amazon-deals-bot/
-├── domain/              # Entidades e interfaces (sem dependências externas)
-│   ├── entities/
-│   │   └── deal.py      # Entidade Deal + enum Category
-│   └── interfaces/
-│       └── __init__.py  # IDealsFetcher, IDealRepository, IMessageGenerator, INotifier
-├── use_cases/
-│   └── process_deals.py # Lógica de negócio central
-├── adapters/            # Implementações concretas das interfaces
-│   ├── pelando_fetcher.py
-│   ├── supabase_repository.py
-│   ├── openai_generator.py
-│   └── zapi_notifier.py
-├── infrastructure/      # Config, scheduler, injeção de dependências
-│   ├── config.py
-│   ├── container.py
-│   └── scheduler.py
-├── tests/
-│   ├── unit/            # Testes sem dependências externas
-│   └── integration/     # Testes contra serviços reais (CI only)
-└── scripts/
-    └── health_check.py  # Smoke test pós-deploy
-```
-
-**Regra de dependência:**
-```
-infrastructure → adapters → use_cases → domain
-```
-
-Nenhuma camada interna conhece os detalhes das camadas externas. O `ProcessDealsUseCase` só depende de interfaces abstratas — nunca de implementações concretas.
-
----
-
-## Pré-requisitos
-
-- Python 3.12+
-- Conta no [Supabase](https://supabase.com) (plano gratuito)
-- Chave de API da [OpenAI](https://platform.openai.com)
-- Conta na API de mensageria WhatsApp escolhida
-- Conta no [Railway](https://railway.app)
-
----
-
-## Configuração local
-
-### 1. Clone o repositório
-
-```bash
-git clone https://github.com/seu-usuario/amazon-deals-bot.git
-cd amazon-deals-bot
-```
-
-### 2. Instale as dependências
-
-```bash
-pip install ".[dev]"
-```
-
-### 3. Configure as variáveis de ambiente
-
-Copie o arquivo de exemplo e preencha com suas credenciais:
-
-```bash
-cp .env.example .env
-```
-
-Edite o `.env` com seus dados. Consulte `.env.example` para ver quais variáveis são necessárias.
-
-### 4. Execute localmente
-
-```bash
-python -m infrastructure.scheduler
-```
-
-O bot roda imediatamente ao iniciar e depois repete no intervalo configurado.
-
----
-
-## Variáveis de ambiente
-
-Todas as variáveis estão documentadas em `.env.example`. As principais são:
-
-| Variável | Descrição | Padrão |
-|---|---|---|
-| `SUPABASE_DB_URL` | Connection string do PostgreSQL | — |
-| `OPENAI_API_KEY` | Chave da API OpenAI | — |
-| `MIN_DISCOUNT_PCT` | Desconto mínimo para aprovação | `20` |
-| `SCHEDULE_INTERVAL_MINUTES` | Intervalo entre execuções | `30` |
-| `OPENAI_MODEL` | Modelo da OpenAI utilizado | `gpt-4o-mini` |
-
-> ⚠️ Nunca commite o arquivo `.env`. Ele já está no `.gitignore`.
-
----
-
-## Testes
-
-### Unitários (sem dependências externas)
-
-```bash
-python -m pytest tests/unit/ -v
-```
-
-### Com cobertura
-
-```bash
-python -m pytest tests/unit/ --cov=. --cov-report=term-missing
-```
-
-### Integração (requer credenciais reais)
-
-```bash
-python -m pytest -m integration -v
-```
-
-Os testes de integração requerem variáveis de ambiente preenchidas e são executados apenas no CI (branch `main`).
-
-### Resultado esperado
-
-```
-30 passed in 1.26s
+├── controller/              # Endpoints (se necessário)
+├── service/
+│   ├── scheduler/           # Execução automática
+│   ├── api/                 # Clients das APIs externas
+│   ├── affiliate/           # Geração de links afiliados
+│   ├── product/             # Regras de negócio de produto
+│   ├── ai/                  # Geração de copy
+│   └── messaging/           # Envio WhatsApp
+├── repository/              # Acesso ao banco (JPA)
+├── entity/                  # Entidades (Product, Deal, etc.)
+├── dto/                     # Objetos de transferência
+├── config/                  # Configurações (beans, clients)
 ```
 
 ---
 
-## Deploy no Railway
+## 🗄️ Banco de Dados
 
-### 1. Crie um novo projeto no Railway
-
-Conecte ao repositório GitHub. O Railway detecta o `Dockerfile` automaticamente.
-
-### 2. Configure as variáveis de ambiente
-
-No painel do Railway, adicione todas as variáveis listadas em `.env.example`.
-
-### 3. Deploy
-
-```bash
-git push origin main
-```
-
-O Railway faz o build, executa o `health_check.py` e sobe o serviço. Em caso de falha, reverte automaticamente para a versão anterior.
-
-### railway.toml
-
-```toml
-[build]
-builder = "dockerfile"
-
-[deploy]
-restartPolicyType = "on_failure"
-restartPolicyMaxRetries = 3
-```
-
----
-
-## CI/CD
-
-O GitHub Actions executa dois jobs:
-
-| Job | Quando roda | O que faz |
-|---|---|---|
-| `unit-tests` | Todo PR e push | Roda `pytest -m "not integration"` |
-| `integration-tests` | Push em `main` | Roda `pytest -m integration` com secrets |
-
-Configure os secrets no repositório GitHub antes do primeiro deploy em produção.
-
----
-
-## Banco de dados
-
-O schema é criado automaticamente na primeira execução:
+## Tabela principal:
 
 ```sql
-CREATE TABLE IF NOT EXISTS deals_sent (
-    id           TEXT PRIMARY KEY,
-    title        TEXT        NOT NULL,
-    category     TEXT        NOT NULL,
-    store        TEXT        NOT NULL,
-    price        NUMERIC(10,2),
-    discount_pct INTEGER,
-    url          TEXT,
-    sent_at      TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE deals (
+id BIGINT AUTO_INCREMENT PRIMARY KEY,
+nome VARCHAR(255) NOT NULL,
+preco DECIMAL(10,2),
+preco_original DECIMAL(10,2),
+link_afiliado TEXT,
+imagem TEXT,
+origem VARCHAR(50),
+hash VARCHAR(255) UNIQUE,
+status VARCHAR(50),
+data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+data_envio TIMESTAMP
 );
 ```
 
-O campo `id` é um hash do URL da promoção — garante idempotência nas inserções.
+📌 O campo `hash` garante que a mesma promoção nunca seja enviada duas vezes.
 
 ---
 
-## Como estender
+## 🐳 Rodando com Docker
 
-### Adicionar nova categoria
+### docker-compose.yml
 
-1. Adicione o valor no enum `Category` em `domain/entities/deal.py`
-2. Adicione as keywords em `CATEGORY_KEYWORDS` em `adapters/pelando_fetcher.py`
-3. Adicione testes em `tests/unit/test_pelando_fetcher.py`
+```yaml
+version: '3.8'
 
-### Adicionar nova fonte de promoções
+## services:
+## app:
+build: .
+## ports:
+- "8080:8080"
+## depends_on:
+- mysql
 
-1. Crie `adapters/nova_fonte_fetcher.py` implementando `IDealsFetcher`
-2. Crie um `CompositeFetcher` em `adapters/` que agrega múltiplos fetchers
-3. Atualize `infrastructure/container.py`
-
-O `ProcessDealsUseCase` não precisa de nenhuma alteração.
-
-### Adicionar segundo grupo de WhatsApp
-
-1. Crie `adapters/composite_notifier.py` implementando `INotifier`
-2. Delegue para múltiplas instâncias de notifier internamente
-3. Atualize `infrastructure/container.py`
-
----
-
-## Custo estimado
-
-| Serviço | Plano | Custo mensal |
-|---|---|---|
-| Hospedagem (Railway) | Hobby | R$15–20 |
-| Banco de dados (Supabase) | Free tier | Grátis |
-| Geração de texto (OpenAI) | Pay-as-you-go | R$5–10 |
-| API WhatsApp | Plano básico | R$49 |
-| **Total** | | **~R$69–79** |
+## mysql:
+image: mysql:8
+## environment:
+MYSQL_ROOT_PASSWORD: root
+MYSQL_DATABASE: deals_db
+## ports:
+- "3306:3306"
+```
 
 ---
 
-## Licença
+## 🔐 Variáveis de Ambiente
 
-MIT
+```env
+DB_HOST=localhost
+## DB_PORT=3306
+DB_NAME=deals_db
+DB_USER=root
+DB_PASSWORD=root
+
+## API_AMAZON_KEY=
+## API_SHOPEE_KEY=
+## API_MAGALU_KEY=
+
+## AFFILIATE_ID=
+
+## OPENAI_API_KEY=
+
+## WHATSAPP_API_URL=
+## WHATSAPP_API_TOKEN=
+```
 
 ---
 
-## Contribuindo
+## ▶️ Execução Local
 
-1. Fork o projeto
-2. Crie uma branch: `git checkout -b feature/minha-feature`
-3. Garanta que os testes passam: `python -m pytest tests/unit/`
+### 1. Clonar repositório
+
+```bash
+git clone [https://github.com/seu-usuario/amazon-deals-bot.git](https://github.com/seu-usuario/amazon-deals-bot.git)
+cd amazon-deals-bot
+```
+
+### 2. Subir containers
+
+```bash
+docker-compose up -d
+```
+
+### 3. Rodar aplicação
+
+```bash
+./mvnw spring-boot:run
+```
+
+---
+
+## 🚀 Deploy (VPS)
+
+1. Subir código na VPS
+2. Instalar Docker + Docker Compose
+3. Rodar:
+
+```bash
+docker-compose up -d --build
+```
+
+4. Configurar variáveis de ambiente no servidor
+
+---
+
+## 📈 Melhorias Futuras
+
+- Fila de processamento (RabbitMQ / Kafka)
+- Cache com Redis
+- Painel administrativo
+- Métricas de conversão (cliques / vendas)
+- Suporte a múltiplos grupos
+- Rate limiting nas APIs
+
+---
+
+## 💰 Monetização
+
+## O sistema utiliza:
+
+- Links de afiliado por produto
+- Distribuição em grupos com alto engajamento
+- Copywriting automatizado com IA
+
+---
+
+## 📄 Licença
+
+## MIT
+
+---
+
+## 🤝 Contribuição
+
+1. Crie uma branch: `feature/nova-feature`
+2. Commit: `git commit -m "feat: nova feature"`
+3. Push: `git push origin feature/nova-feature`
 4. Abra um Pull Request
