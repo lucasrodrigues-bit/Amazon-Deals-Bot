@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
 
@@ -50,9 +50,12 @@ class Settings(BaseSettings):
     environment: str = "development"
     log_level: str = "INFO"
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+    # 🔥 CONFIG CORRETA (Pydantic v2)
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",
+        case_sensitive=False
+    )
 
 
 settings = Settings()
