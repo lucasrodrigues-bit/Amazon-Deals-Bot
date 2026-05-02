@@ -53,3 +53,6 @@ exclude = ["alembic/"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/amazon_deals_bot"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
