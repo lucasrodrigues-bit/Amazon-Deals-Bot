@@ -71,20 +71,25 @@ services:
       - "9999:8080"
 
   app:
-    build: .
-    container_name: deals-app
-    restart: unless-stopped
-    env_file: .env
+  build:
+    context: .
     dockerfile: Dockerfile
-    networks:
-      - deals-net
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      evolution-api:
-        condition: service_started
+
+  container_name: deals-app
+  restart: unless-stopped
+  env_file:
+    - .env
+
+  networks:
+    - deals-net
+
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    evolution-api:
+      condition: service_started
 
 volumes:
   postgres-data:
