@@ -6,32 +6,48 @@ from sqlalchemy import (
     Text,
     DateTime,
 )
-from sqlalchemy.orm import declarative_base
 from datetime import datetime
 
-Base = declarative_base()
+from amazon_deals_bot.db.session import Base
 
 
 class Deal(Base):
     __tablename__ = "deals"
 
-    id = Column(String, primary_key=True)  # hash do produto
+    # ID = hash (deduplicação)
+    id = Column(String, primary_key=True)
 
+    # Dados do produto
     name = Column(String(255), nullable=False)
-    price = Column(Numeric(10, 2))
-    original_price = Column(Numeric(10, 2))
+    price = Column(Numeric(10, 2), nullable=True)
+    original_price = Column(Numeric(10, 2), nullable=True)
 
-    url = Column(Text)
-    affiliate_url = Column(Text)
+    discount_pct = Column(Integer, nullable=True)
 
-    image_url = Column(Text)
+    # Links
+    url = Column(Text, nullable=False)
+    affiliate_url = Column(Text, nullable=True)
 
-    source = Column(String(50))  # amazon | shopee | magalu
+    # Imagem
+    image_url = Column(Text, nullable=True)
 
-    discount_pct = Column(Integer)
+    # Origem
+    source = Column(String(50), nullable=False)
+    # amazon | shopee | magalu
 
-    status = Column(String(50), default="PENDING")
-    # PENDING | READY | SENT | FAILED
+    # STATUS DO PIPELINE
+    status = Column(String(50), nullable=False, default="PENDING")
+    """
+    PENDING   → recém coletado
+    READY     → pronto para envio
+    SENT      → enviado com sucesso
+    FAILED    → falha no envio
+    """
 
+    # CONTROLE DE RETRY
+    retry_count = Column(Integer, default=0)
+
+    # TIMESTAMPS
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow)
     sent_at = Column(DateTime, nullable=True)
