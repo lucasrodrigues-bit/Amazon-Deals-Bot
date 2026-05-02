@@ -1,11 +1,4 @@
-from sqlalchemy import (
-    Column,
-    String,
-    Integer,
-    Numeric,
-    Text,
-    DateTime,
-)
+from sqlalchemy import Column, String, Integer, Numeric, Text, DateTime
 from datetime import datetime
 
 from amazon_deals_bot.db.session import Base
@@ -21,7 +14,6 @@ class Deal(Base):
     name = Column(String(255), nullable=False)
     price = Column(Numeric(10, 2), nullable=True)
     original_price = Column(Numeric(10, 2), nullable=True)
-
     discount_pct = Column(Integer, nullable=True)
 
     # Links
@@ -33,24 +25,17 @@ class Deal(Base):
 
     # Origem
     source = Column(String(50), nullable=False)
-    # amazon | shopee | magalu
 
-    # STATUS DO PIPELINE
+    # Pipeline
     status = Column(String(50), nullable=False, default="PENDING")
-    """
-    PENDING   → recém coletado
-    READY     → pronto para envio
-    SENT      → enviado com sucesso
-    FAILED    → falha no envio
-    """
 
-    # CONTROLE DE RETRY
+    # Retry
     retry_count = Column(Integer, default=0)
 
-    # TIMESTAMPS
+    # Copy
+    copy = Column(Text, nullable=True)
+
+    # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
     sent_at = Column(DateTime, nullable=True)
-
-    #copy
-    copy = Column(Text, nullable=True)
