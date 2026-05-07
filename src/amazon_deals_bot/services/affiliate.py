@@ -11,14 +11,19 @@ class AffiliateService:
         normalized = source.upper()
         if normalized == DealSource.AMAZON:
             return AffiliateService._amazon(url)
-        if normalized == DealSource.SHOPEE:
-            return AffiliateService._shopee(url)
-        if normalized == DealSource.MAGALU:
-            return AffiliateService._magalu(url)
+        # Shopee and Magalu: the collector APIs return URLs that are already
+        # affiliate-tagged when authenticated with affiliate credentials.
+        if normalized in (DealSource.SHOPEE, DealSource.MAGALU):
+            logger.bind(event="affiliate_passthrough", source=normalized).debug(
+                "affiliate passthrough — url already tagged by source api"
+            )
+            return url
         return url
 
     @staticmethod
     def _amazon(url: str) -> str:
+        # PA-API returns raw product URLs; the associate tag must be appended
+        # so Amazon can attribute the sale to the affiliate account.
         if not settings.amazon_associate_tag:
             return url
 
@@ -28,21 +33,3 @@ class AffiliateService:
         params["tag"] = [settings.amazon_associate_tag]
         new_query = urlencode(params, doseq=True)
         return urlunparse(parsed._replace(query=new_query))
-
-    @staticmethod
-    def _shopee(url: str) -> str:
-        if not settings.shopee_app_id:
-            return url
-
-        parsed = urlparse(url)
-        params = parse_qs(parsed.query, keep_blank_values=True)
-        params["aff_id"] = [settings.shopee_app_id]
-        new_query = urlencode(params, doseq=True)
-        return urlunparse(parsed._replace(query=new_query))
-
-    @staticmethod
-    def _magalu(url: str) -> str:
-        logger.bind(event="affiliate_passthrough", source=DealSource.MAGALU).debug(
-            "magalu affiliate passthrough"
-        )
-        return url
