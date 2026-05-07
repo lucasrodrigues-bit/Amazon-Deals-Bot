@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -51,10 +51,10 @@ class DealRepository:
             return None
 
         deal.status = status
-        deal.updated_at = datetime.now(timezone.utc)
+        deal.updated_at = datetime.utcnow()
 
         if status == "SENT":
-            deal.sent_at = datetime.now(timezone.utc)
+            deal.sent_at = datetime.utcnow()
 
         if retry_count is not None:
             deal.retry_count = retry_count
@@ -70,7 +70,7 @@ class DealRepository:
 
         deal.copy = copy
         deal.status = "READY"
-        deal.updated_at = datetime.now(timezone.utc)
+        deal.updated_at = datetime.utcnow()
 
         await self.session.commit()
         await self.session.refresh(deal)

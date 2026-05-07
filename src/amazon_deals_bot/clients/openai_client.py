@@ -6,7 +6,7 @@ from openai import AsyncOpenAI
 from amazon_deals_bot.config.settings import settings
 from amazon_deals_bot.utils.logger import logger
 
-_PROMPT_PATH = Path(__file__).parents[4] / "prompts" / "copy_v1.md"
+_PROMPT_PATH = Path(__file__).parents[3] / "prompts" / "copy_v1.md"
 
 _INPUT_COST_PER_TOKEN = 0.00000015
 _OUTPUT_COST_PER_TOKEN = 0.0000006
