@@ -1,0 +1,17 @@
+# Configuração de grupos WhatsApp
+# Os IDs reais são definidos no .env (WPP_GROUP_IDS=id1,id2,id3)
+# Este arquivo é referência para logging e auditoria.
+#
+# Para descobrir o ID de um grupo:
+#   GET http://evolution-api:8080/group/fetchAllGroups/{instance_name}
+#
+# Formato do ID: 120363XXXXXXXXXX@g.us
+
+groups:
+  - id: "placeholder@g.us"
+    name: "Grupo Principal de Ofertas"
+    active: true
+
+settings:
+  send_images: true
+  max_retries: 3

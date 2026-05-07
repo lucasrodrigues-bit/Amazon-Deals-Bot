@@ -1,18 +1,14 @@
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
 from amazon_deals_bot.config.settings import settings
 
-# Base para os models
-Base = declarative_base()
-
-# Engine async (PostgreSQL + asyncpg)
 engine = create_async_engine(
     settings.database_url,
-    echo=False,  # mudar para True se quiser debug SQL
+    echo=False,
     pool_pre_ping=True,
+    connect_args={"server_settings": {"statement_timeout": "10000"}},
 )
 
-# Factory de sessões
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,
     class_=AsyncSession,
@@ -20,7 +16,6 @@ AsyncSessionLocal = async_sessionmaker(
 )
 
 
-# Dependency/helper para uso futuro
 async def get_db_session() -> AsyncSession:
     async with AsyncSessionLocal() as session:
         yield session

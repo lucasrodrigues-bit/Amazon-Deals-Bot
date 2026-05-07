@@ -18,8 +18,11 @@ COPY . .
 
 ENV PYTHONPATH=/app/src
 
+COPY scripts/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 RUN useradd --create-home --shell /bin/bash appuser \
     && chown -R appuser:appuser /app
 USER appuser
 
-CMD ["python", "-m", "amazon_deals_bot.main"]
+ENTRYPOINT ["/app/entrypoint.sh"]

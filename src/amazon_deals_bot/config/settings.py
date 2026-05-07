@@ -51,6 +51,7 @@ class Settings(BaseSettings):
 
     # SCHEDULER
     phase1_interval_minutes: int = 15
+    copywriter_interval_seconds: int = 120
     phase2_interval_seconds: int = 60
 
     # ENV

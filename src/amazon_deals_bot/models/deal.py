@@ -1,7 +1,8 @@
-from sqlalchemy import Column, String, Integer, Numeric, Text, DateTime
-from datetime import datetime
+from datetime import datetime, timezone
 
-from amazon_deals_bot.db.session import Base
+from sqlalchemy import Column, DateTime, Integer, Numeric, String, Text
+
+from amazon_deals_bot.models.base import Base
 
 
 class Deal(Base):
@@ -36,6 +37,6 @@ class Deal(Base):
     copy = Column(Text, nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     sent_at = Column(DateTime, nullable=True)

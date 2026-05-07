@@ -1,0 +1,19 @@
+# Categorias Amazon Brasil (Browse Node IDs)
+# Usadas pelo coletor para varrer produtos com desconto por categoria.
+amazon:
+  - id: "6291368011"
+    name: "Eletrônicos"
+  - id: "16243390011"
+    name: "Informática"
+  - id: "6764432011"
+    name: "Casa e Cozinha"
+  - id: "18077270011"
+    name: "Ferramentas e Materiais de Construção"
+  - id: "16318391011"
+    name: "Esportes e Aventura"
+  - id: "17442412011"
+    name: "Beleza e Cuidados Pessoais"
+  - id: "6882741011"
+    name: "Brinquedos e Jogos"
+  - id: "16209062011"
+    name: "Roupas e Acessórios"

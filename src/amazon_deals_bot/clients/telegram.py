@@ -16,7 +16,6 @@ class TelegramBotClient:
             await self._bot.send_message(
                 chat_id=channel_id,
                 text=text,
-                parse_mode="Markdown",
             )
             logger.bind(event="telegram_sent", channel_id=channel_id).info("message sent")
             return True
@@ -35,7 +34,6 @@ class TelegramBotClient:
                 chat_id=channel_id,
                 photo=photo_url,
                 caption=caption,
-                parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup(
                     [[InlineKeyboardButton("🛒 Comprar agora", url=link)]]
                 ),

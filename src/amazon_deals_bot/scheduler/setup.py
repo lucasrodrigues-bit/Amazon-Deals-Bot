@@ -1,5 +1,6 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+from amazon_deals_bot.config.settings import settings
 from amazon_deals_bot.scheduler.jobs import (
     run_collector,
     run_copywriter,
@@ -7,16 +8,32 @@ from amazon_deals_bot.scheduler.jobs import (
 )
 
 
-def setup_scheduler():
+def setup_scheduler() -> AsyncIOScheduler:
     scheduler = AsyncIOScheduler()
 
-    # Fase 1 → a cada 15 min
-    scheduler.add_job(run_collector, "interval", minutes=15)
-
-    # Fase 2 → a cada 2 min
-    scheduler.add_job(run_copywriter, "interval", minutes=2)
-
-    # Fase 3 → a cada 1 min
-    scheduler.add_job(run_publisher, "interval", minutes=1)
+    scheduler.add_job(
+        run_collector,
+        "interval",
+        minutes=settings.phase1_interval_minutes,
+        id="collector",
+        max_instances=1,
+        coalesce=True,
+    )
+    scheduler.add_job(
+        run_copywriter,
+        "interval",
+        seconds=settings.copywriter_interval_seconds,
+        id="copywriter",
+        max_instances=1,
+        coalesce=True,
+    )
+    scheduler.add_job(
+        run_publisher,
+        "interval",
+        seconds=settings.phase2_interval_seconds,
+        id="publisher",
+        max_instances=1,
+        coalesce=True,
+    )
 
     return scheduler

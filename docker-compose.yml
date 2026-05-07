@@ -16,6 +16,13 @@ services:
       redis:
         condition: service_healthy
 
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import amazon_deals_bot' && echo ok"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
     networks:
       - deals-net
 

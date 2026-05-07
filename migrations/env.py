@@ -6,7 +6,7 @@ from sqlalchemy import engine_from_config, pool
 from alembic import context
 
 from amazon_deals_bot.config.settings import settings
-from amazon_deals_bot.db.session import Base
+from amazon_deals_bot.models.base import Base
 from amazon_deals_bot.models import deal  # noqa: F401 — registers models for autogenerate
 
 config = context.config

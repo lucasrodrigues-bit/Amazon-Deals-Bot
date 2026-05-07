@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import hmac
 import json
@@ -169,6 +170,9 @@ class AmazonClient:
                 logger.warning(f"amazon pa-api error for node {node_id}: {exc.response.status_code}")
             except Exception as exc:
                 logger.warning(f"amazon fetch failed for node {node_id}: {exc}")
+
+            # PA-API rate limit: 1 req/sec — respect between node requests
+            await asyncio.sleep(1.1)
 
         return all_deals
 

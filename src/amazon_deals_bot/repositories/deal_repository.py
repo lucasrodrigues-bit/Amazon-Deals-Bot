@@ -1,6 +1,7 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime, timezone
+
 from sqlalchemy import select
-from datetime import datetime
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from amazon_deals_bot.models.deal import Deal
 
@@ -27,21 +28,15 @@ class DealRepository:
         await self.session.refresh(deal)
         return deal
 
-    # 🔥 Deals recém coletados (ainda sem copy)
     async def get_pending_deals(self, limit: int = 10):
         result = await self.session.execute(
-            select(Deal)
-            .where(Deal.status == "PENDING")
-            .limit(limit)
+            select(Deal).where(Deal.status == "PENDING").limit(limit)
         )
         return result.scalars().all()
 
-    # 🔥 Deals prontos para envio
     async def get_ready_deals(self, limit: int = 10):
         result = await self.session.execute(
-            select(Deal)
-            .where(Deal.status == "READY")
-            .limit(limit)
+            select(Deal).where(Deal.status == "READY").limit(limit)
         )
         return result.scalars().all()
 
@@ -52,36 +47,31 @@ class DealRepository:
         retry_count: int | None = None,
     ):
         deal = await self.get_by_id(deal_id)
-
         if not deal:
             return None
 
         deal.status = status
-        deal.updated_at = datetime.utcnow()
+        deal.updated_at = datetime.now(timezone.utc)
 
         if status == "SENT":
-            deal.sent_at = datetime.utcnow()
+            deal.sent_at = datetime.now(timezone.utc)
 
         if retry_count is not None:
             deal.retry_count = retry_count
 
         await self.session.commit()
         await self.session.refresh(deal)
-
         return deal
 
-    # 🔥 Atualiza copy + status (usado pelo copywriter)
     async def update_copy(self, deal_id: str, copy: str):
         deal = await self.get_by_id(deal_id)
-
         if not deal:
             return None
 
         deal.copy = copy
         deal.status = "READY"
-        deal.updated_at = datetime.utcnow()
+        deal.updated_at = datetime.now(timezone.utc)
 
         await self.session.commit()
         await self.session.refresh(deal)
-
         return deal

@@ -66,4 +66,9 @@ class OpenAIClient:
             model=settings.openai_model,
         ).info("openai call cost")
 
+        if cost_usd >= settings.openai_daily_cost_alert_usd:
+            logger.bind(event="openai_cost_alert", cost_usd=round(cost_usd, 6)).warning(
+                "openai call cost exceeds daily alert threshold — check usage dashboard"
+            )
+
         return response.choices[0].message.content.strip()

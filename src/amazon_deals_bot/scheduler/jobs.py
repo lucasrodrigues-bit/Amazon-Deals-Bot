@@ -2,33 +2,25 @@ from amazon_deals_bot.db.session import AsyncSessionLocal
 from amazon_deals_bot.services.collector import CollectorService
 from amazon_deals_bot.services.copywriter import CopywriterService
 from amazon_deals_bot.services.publisher import PublisherService
+from amazon_deals_bot.utils.logger import logger
 
 
-# 🔹 FASE 1 — COLETA (por enquanto mock)
-async def run_collector():
+async def run_collector() -> None:
     async with AsyncSessionLocal() as session:
         service = CollectorService(session)
-
-        # MOCK TEMPORÁRIO
-        await service.process_product(
-            name="Produto Teste",
-            price=99.90,
-            original_price=199.90,
-            url="https://amazon.com/teste",
-            image_url=None,
-            source="amazon",
-        )
+        count = await service.run()
+        logger.bind(event="collector_job", new_deals=count).info("collector job finished")
 
 
-# 🔹 FASE 2 — COPY
-async def run_copywriter():
+async def run_copywriter() -> None:
     async with AsyncSessionLocal() as session:
         service = CopywriterService(session)
-        await service.process()
+        count = await service.process()
+        logger.bind(event="copywriter_job", processed=count).info("copywriter job finished")
 
 
-# 🔹 FASE 3 — ENVIO
-async def run_publisher():
+async def run_publisher() -> None:
     async with AsyncSessionLocal() as session:
         service = PublisherService(session)
-        await service.process()
+        count = await service.process()
+        logger.bind(event="publisher_job", sent=count).info("publisher job finished")
